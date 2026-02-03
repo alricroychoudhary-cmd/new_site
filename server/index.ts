@@ -1,8 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { serveStatic } from "./static";
 import { createServer } from "http";
-import path from "path";  // Add this import
+import path from "path";
 
 const app = express();
 const httpServer = createServer(app);
@@ -59,9 +58,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Main initialization
-(async () => {
-  // Register all API routes
+// Async initialization function
+let initPromise: Promise<void> | null = null;
+async function initialize() {
   await registerRoutes(httpServer, app);
 
   // Global error handler
@@ -75,48 +74,65 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
-  // Serve frontend files
+  // Serve frontend in production or Vite in dev
   if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
+    // Explicit static serving (replace serveStatic if it's not working)
+    app.use(express.static(path.join(__dirname, "../public")));
 
-    // Add SPA catch-all (serve index.html for all unknown routes)
-    // This must come AFTER all API routes and serveStatic
+    // Catch-all route for SPA (must be last)
     app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "../public/index.html"));
+      const indexPath = path.join(__dirname, "../public/index.html");
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error("Error sending index.html:", err);
+          res.status(500).send("Server error");
+        }
+      });
     });
   } else {
-    // Development: Vite HMR + proxy
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
-})();
+}
 
-// ────────────────────────────────────────────────
-// Export for Vercel (serverless) – THIS IS REQUIRED
-// ────────────────────────────────────────────────
-export default app;
+// Lazy init
+function getInitPromise() {
+  if (!initPromise) {
+    initPromise = initialize();
+  }
+  return initPromise;
+}
 
-// ────────────────────────────────────────────────
-// Only start HTTP server when running locally
-// Skip this block completely on Vercel
-// ────────────────────────────────────────────────
-if (process.env.NODE_ENV === "production") {
-  // Serve static files (js, css, images, etc.)
-  app.use(express.static(path.join(__dirname, "../public")));
+// Vercel handler (async to await init)
+const handler = async (req: Request, res: Response) => {
+  try {
+    await getInitPromise();
+    app(req, res);
+  } catch (err) {
+    console.error("Initialization error:", err);
+    res.status(500).send("Server initialization failed");
+  }
+};
 
-  // VERY IMPORTANT: SPA catch-all route
-  // Must come AFTER all API routes
-  app.get("*", (req, res) => {
-    const indexPath = path.join(__dirname, "../public/index.html");
-    res.sendFile(indexPath, (err) => {
-      if (err) {
-        console.error("Error sending index.html:", err);
-        res.status(500).send("Server error");
+// Export the handler for Vercel
+export default handler;
+
+// Local server start (non-Vercel)
+if (!process.env.VERCEL) {
+  getInitPromise().then(() => {
+    const port = parseInt(process.env.PORT || "5000", 10);
+    httpServer.listen(
+      {
+        port,
+        host: "0.0.0.0",
+        reusePort: true,
+      },
+      () => {
+        log(`Server listening on port ${port}`);
       }
-    });
+    );
+  }).catch(err => {
+    console.error("Local init error:", err);
+    process.exit(1);
   });
-} else {
-  // Development only
-  const { setupVite } = await import("./vite");
-  await setupVite(httpServer, app);
 }
