@@ -13,17 +13,11 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/dist/index.cjs"
+      "dest": "dist/index.cjs"
     },
     {
       "src": "/(.*)",
       "dest": "/dist/public/$1"
     }
-  ],
-  "functions": {
-    "dist/index.cjs": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  }
+  ]
 }
