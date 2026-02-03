@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import path from "path";  // Add this import
 
 const app = express();
 const httpServer = createServer(app);
@@ -77,6 +78,12 @@ app.use((req, res, next) => {
   // Serve frontend files
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
+
+    // Add SPA catch-all (serve index.html for all unknown routes)
+    // This must come AFTER all API routes and serveStatic
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(__dirname, "../public/index.html"));
+    });
   } else {
     // Development: Vite HMR + proxy
     const { setupVite } = await import("./vite");
