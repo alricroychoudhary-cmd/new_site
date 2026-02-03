@@ -32,7 +32,7 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-// Logging middleware
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -58,11 +58,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Register API routes
+// Main initialization
 (async () => {
+  // Register all API routes
   await registerRoutes(httpServer, app);
 
-  // Error handler
+  // Global error handler
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -73,25 +74,26 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
-  // Static files + SPA support
+  // Serve frontend files
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
-    // Development only - Vite HMR
+    // Development: Vite HMR + proxy
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
 })();
 
 // ────────────────────────────────────────────────
-// Vercel / Serverless support
+// Export for Vercel (serverless) – THIS IS REQUIRED
 // ────────────────────────────────────────────────
-
-// Export the app for Vercel (this is the most important part)
 export default app;
 
-// Only start the server when running locally / not in Vercel
-if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+// ────────────────────────────────────────────────
+// Only start HTTP server when running locally
+// Skip this block completely on Vercel
+// ────────────────────────────────────────────────
+if (!process.env.VERCEL) {
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
@@ -100,7 +102,7 @@ if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
       reusePort: true,
     },
     () => {
-      log(`serving on port ${port}`);
+      log(`Server listening on port ${port}`);
     }
   );
 }
