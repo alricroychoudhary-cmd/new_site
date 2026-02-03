@@ -100,16 +100,23 @@ export default app;
 // Only start HTTP server when running locally
 // Skip this block completely on Vercel
 // ────────────────────────────────────────────────
-if (!process.env.VERCEL) {
-  const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`Server listening on port ${port}`);
-    }
-  );
+if (process.env.NODE_ENV === "production") {
+  // Serve static files (js, css, images, etc.)
+  app.use(express.static(path.join(__dirname, "../public")));
+
+  // VERY IMPORTANT: SPA catch-all route
+  // Must come AFTER all API routes
+  app.get("*", (req, res) => {
+    const indexPath = path.join(__dirname, "../public/index.html");
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        console.error("Error sending index.html:", err);
+        res.status(500).send("Server error");
+      }
+    });
+  });
+} else {
+  // Development only
+  const { setupVite } = await import("./vite");
+  await setupVite(httpServer, app);
 }
