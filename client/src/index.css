@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Teal/Dark Cyan Theme matching the Saba Wallet reference */
+  --primary: 183 100% 25%;      /* #008080 equivalent-ish, deep teal */
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 183 30% 96%;
+  --secondary-foreground: 183 100% 25%;
+
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+
+  --accent: 38 92% 50%;         /* Gold/Orange accent for logo */
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 183 100% 25%;
+
+  --radius: 1rem;
+  
+  --font-sans: 'Outfit', 'Cairo', sans-serif;
+  --font-display: 'Outfit', 'Cairo', sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased font-sans;
+  }
+}
+
+@layer utilities {
+  .clip-curved-header {
+    border-bottom-left-radius: 50% 20%;
+    border-bottom-right-radius: 50% 20%;
+  }
+}
